@@ -1,5 +1,3 @@
--c ../requirements.txt
-
 playwright
 
 # requirement-help and requirements-playwright choose different versions
