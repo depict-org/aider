@@ -23,6 +23,7 @@ classifiers = [
 requires-python = ">=3.9,<3.13"
 dynamic = ["optional-dependencies", "version"]
 dependencies = [
+    "pydub",
     "configargparse",
     "GitPython",
     "jsonschema",
