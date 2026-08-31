@@ -183,7 +183,7 @@ idna==3.10
     #   httpx
     #   requests
     #   yarl
-importlib-metadata==7.2.1
+importlib-metadata>=7.2.1
     # via
     #   -c requirements/common-constraints.txt
     #   -r requirements/requirements.in
@@ -213,7 +213,7 @@ jsonschema-specifications==2025.4.1
     # via
     #   -c requirements/common-constraints.txt
     #   jsonschema
-litellm==1.73.1
+litellm>=1.73.1
     # via
     #   -c requirements/common-constraints.txt
     #   -r requirements/requirements.in
