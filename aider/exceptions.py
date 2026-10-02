@@ -20,6 +20,7 @@ EXCEPTIONS = [
         "The API provider is not able to authenticate you. Check your API key.",
     ),
     ExInfo("AzureOpenAIError", True, None),
+    ExInfo("BadGatewayError", True, "The API provider's servers are down or overloaded."),
     ExInfo("BadRequestError", False, None),
     ExInfo("BudgetExceededError", True, None),
     ExInfo(
@@ -28,10 +29,16 @@ EXCEPTIONS = [
         "The API provider has refused the request due to a safety policy about the content.",
     ),
     ExInfo("ContextWindowExceededError", False, None),  # special case handled in base_coder
+    ExInfo("ImageFetchError", False, "The API provider was unable to fetch one or more images."),
     ExInfo("InternalServerError", True, "The API provider's servers are down or overloaded."),
     ExInfo("InvalidRequestError", True, None),
     ExInfo("JSONSchemaValidationError", True, None),
     ExInfo("NotFoundError", False, None),
+    ExInfo(
+        "PermissionDeniedError",
+        False,
+        "Permission was denied. Check your API key and/or credentials.",
+    ),
     ExInfo("OpenAIError", True, None),
     ExInfo(
         "RateLimitError",
@@ -61,13 +68,21 @@ class LiteLLMExceptions:
         import litellm
 
         for var in dir(litellm):
-            if var.endswith("Error"):
-                if var not in self.exception_info:
+            # Filter by BaseException because instances of non-exception classes cannot be caught.
+            # `litellm.ErrorEventError` is an example of a regular class which just happens to end
+            # with `Error`.
+            if var.endswith("Error") and issubclass(getattr(litellm, var), BaseException):
+                if var not in self.exception_info and strict:
                     raise ValueError(f"{var} is in litellm but not in aider's exceptions list")
 
+        # depict fork: this runs on every send, so in a deployed service an exception class
+        # that litellm adds (e.g. VectorStoreSearchError in 1.103) or drops would crash every
+        # aider run. Unknown classes are left unmapped (not retried) and absent ones skipped,
+        # which keeps one fork commit working across litellm versions.
         for var in self.exception_info:
-            ex = getattr(litellm, var)
-            self.exceptions[ex] = self.exception_info[var]
+            ex = getattr(litellm, var, None)
+            if ex is not None:
+                self.exceptions[ex] = self.exception_info[var]
 
     def exceptions_tuple(self):
         return tuple(self.exceptions)
