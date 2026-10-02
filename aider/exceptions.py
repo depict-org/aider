@@ -72,13 +72,13 @@ class LiteLLMExceptions:
             # `litellm.ErrorEventError` is an example of a regular class which just happens to end
             # with `Error`.
             if var.endswith("Error") and issubclass(getattr(litellm, var), BaseException):
-                if var not in self.exception_info and strict:
+                if var not in self.exception_info:
                     raise ValueError(f"{var} is in litellm but not in aider's exceptions list")
 
-        # depict fork: this runs on every send, so in a deployed service an exception class
-        # that litellm adds (e.g. VectorStoreSearchError in 1.103) or drops would crash every
-        # aider run. Unknown classes are left unmapped (not retried) and absent ones skipped,
-        # which keeps one fork commit working across litellm versions.
+        # depict fork: litellm older than the 1.88 this list was ported for lacks
+        # BadGatewayError and friends. Skip absent names so this branch still loads on the
+        # litellm 1.63.2 depict main pins until its bump lands -- a lock regen on main
+        # follows this branch's head.
         for var in self.exception_info:
             ex = getattr(litellm, var, None)
             if ex is not None:
