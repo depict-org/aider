@@ -20,6 +20,7 @@ EXCEPTIONS = [
         "The API provider is not able to authenticate you. Check your API key.",
     ),
     ExInfo("AzureOpenAIError", True, None),
+    ExInfo("BadGatewayError", True, "The API provider's servers are down or overloaded."),
     ExInfo("BadRequestError", False, None),
     ExInfo("BudgetExceededError", True, None),
     ExInfo(
@@ -28,10 +29,16 @@ EXCEPTIONS = [
         "The API provider has refused the request due to a safety policy about the content.",
     ),
     ExInfo("ContextWindowExceededError", False, None),  # special case handled in base_coder
+    ExInfo("ImageFetchError", False, "The API provider was unable to fetch one or more images."),
     ExInfo("InternalServerError", True, "The API provider's servers are down or overloaded."),
     ExInfo("InvalidRequestError", True, None),
     ExInfo("JSONSchemaValidationError", True, None),
     ExInfo("NotFoundError", False, None),
+    ExInfo(
+        "PermissionDeniedError",
+        False,
+        "Permission was denied. Check your API key and/or credentials.",
+    ),
     ExInfo("OpenAIError", True, None),
     ExInfo(
         "RateLimitError",
@@ -61,13 +68,21 @@ class LiteLLMExceptions:
         import litellm
 
         for var in dir(litellm):
-            if var.endswith("Error"):
+            # Filter by BaseException because instances of non-exception classes cannot be caught.
+            # `litellm.ErrorEventError` is an example of a regular class which just happens to end
+            # with `Error`.
+            if var.endswith("Error") and issubclass(getattr(litellm, var), BaseException):
                 if var not in self.exception_info:
                     raise ValueError(f"{var} is in litellm but not in aider's exceptions list")
 
+        # depict fork: litellm older than the 1.88 this list was ported for lacks
+        # BadGatewayError and friends. Skip absent names so this branch still loads on the
+        # litellm 1.63.2 depict main pins until its bump lands -- a lock regen on main
+        # follows this branch's head.
         for var in self.exception_info:
-            ex = getattr(litellm, var)
-            self.exceptions[ex] = self.exception_info[var]
+            ex = getattr(litellm, var, None)
+            if ex is not None:
+                self.exceptions[ex] = self.exception_info[var]
 
     def exceptions_tuple(self):
         return tuple(self.exceptions)
